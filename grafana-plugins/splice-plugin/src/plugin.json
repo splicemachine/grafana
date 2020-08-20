@@ -1,7 +1,8 @@
 {
   "type": "datasource",
-  "name": "splice-plugin",
-  "id": "splicemachine-splice-plugin",
+  "name": "Splice Machine",
+  "id": "splicemachine",
+  "category": "sql",
   "metrics": true,
   "backend": false,
   "executable": "gpx_splice-plugin",
