@@ -22,11 +22,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/grafana/simple-datasource-backend"
+        "url": "https://www.splicemachine.com"
       },
       {
         "name": "License",
-        "url": "https://github.com/grafana/simple-datasource-backend/blob/master/LICENSE"
+        "url": "https://github.com/splicemachine/grafana/blob/master/grafana-plugins/splice-plugin/LICENSE"
       }
     ],
     "screenshots": [],
