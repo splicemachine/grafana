@@ -1,0 +1,40 @@
+{
+  "type": "datasource",
+  "name": "Splice Machine",
+  "id": "splicemachine",
+  "category": "sql",
+  "metrics": true,
+  "backend": false,
+  "executable": "gpx_splice-plugin",
+  "info": {
+    "description": "Splicemachine Datasource Plugin",
+    "author": {
+      "name": "jramineni",
+      "url": "www.splicemachine.com"
+    },
+    "keywords": [
+      "splice"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://www.splicemachine.com"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/splicemachine/grafana/blob/master/grafana-plugins/splice-plugin/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2020-08-20"
+  },
+  "dependencies": {
+    "grafanaVersion": "7.x.x",
+    "plugins": []
+  }
+}
