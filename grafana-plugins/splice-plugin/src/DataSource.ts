@@ -8,21 +8,28 @@ const ExpressionDatasourceID = '__expr__';
 export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSourceOptions> {
   url: string;
   headers: any;
+
+  type: string;
+  username: string;
+  name: string;
+  database: any;
+  basicAuth: any;
   withCredentials: any;
-  user: string;
-  password: string;
+  interval: any;
+  responseParser: any;
+
   constructor(instanceSettings: DataSourceInstanceSettings<SpliceDataSourceOptions>) {
     super(instanceSettings);
-    this.url = instanceSettings.url || '';
+
+    this.type = 'splicemachinedb';
+    this.url = instanceSettings.url ?? '';
+
+    this.username = instanceSettings.username ?? '';
+    this.name = instanceSettings.name;
+    this.database = instanceSettings.database;
+    this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
-    this.user = (instanceSettings.jsonData || {}).user || '';
-    this.password = instanceSettings.password || '';
-    this.headers = { 'Content-Type': 'application/json' };
-    if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
-      this.headers['Authorization'] = instanceSettings.basicAuth;
-    }
-    this.headers['user'] = this.user;
-    this.headers['password'] = this.password;
+    this.headers = instanceSettings.jsonData;
   }
 
   async testDatasource() {
