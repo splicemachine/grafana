@@ -135,7 +135,7 @@ export const ConfigEditor = (props: Props) => {
   return (
     <>
       <SpliceSourceHttpSettings
-        defaultUrl={'http://localhost:1111'}
+        defaultUrl={'http://splicedb-splice-http.<NAMESPACE>.svc.cluster.local:1111/'}
         dataSourceConfig={options}
         showAccessOptions={true}
         onChange={onOptionsChange}
