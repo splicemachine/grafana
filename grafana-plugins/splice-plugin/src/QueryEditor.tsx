@@ -1,4 +1,4 @@
-import React, { ChangeEvent, PureComponent } from 'react';
+import React, { ChangeEvent, PureComponent, KeyboardEvent } from 'react';
 import { Select } from '@grafana/ui';
 import { SelectableValue, QueryEditorProps } from '@grafana/data';
 
@@ -9,6 +9,18 @@ const FORMAT_OPTIONS: Array<SelectableValue<string>> = [
   { label: 'Time series', value: 'time_series' },
   { label: 'Table', value: 'table' },
 ];
+
+const defaultTimeseriesQuery = `SELECT
+    <value_column> as value,
+    <time_column> as time
+  FROM
+    <table name>
+  WHERE
+    $__timeFilter(time_column)
+  ORDER BY
+    <time_column> ASC`;
+
+const defaultTableQuery = '';
 
 type Props = QueryEditorProps<DataSource, SpliceQuery, SpliceDataSourceOptions>;
 
@@ -28,6 +40,18 @@ export class QueryEditor extends PureComponent<Props, State> {
     const query = Object.assign({}, defaultQuery, props.query);
     this.query = query;
 
+    if (typeof this.query.queryText === 'undefined' || this.query.queryText === null || this.query.queryText === '') {
+      if (
+        typeof this.query.format === 'undefined' ||
+        this.query.format === null ||
+        this.query.format === 'time_series'
+      ) {
+        this.query.queryText = defaultTimeseriesQuery;
+      } else {
+        this.query.queryText = defaultTableQuery;
+      }
+    }
+
     // Query target properties that are fully controlled inputs
     this.state = {
       // Select options
@@ -35,25 +59,29 @@ export class QueryEditor extends PureComponent<Props, State> {
     };
   }
 
-  onFieldChange = (query: ChangeEvent<HTMLTextAreaElement>) => {
-    this.query.queryText = query.target.value;
-  };
-
   onFormatChange = (option: SelectableValue<string>) => {
     this.query.format = option.value;
+    if (this.query.format === 'table' && this.query.queryText === defaultTimeseriesQuery) {
+      this.query.queryText = defaultTableQuery;
+    } else if (this.query.format === 'time_series' && this.query.queryText === '') {
+      this.query.queryText = defaultTimeseriesQuery;
+    }
     this.setState({ formatOption: option }, this.onRunQuery);
   };
 
-  onQueryTextChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onQueryTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { onChange, query } = this.props;
+    this.query.queryText = event.target.value;
     onChange({ ...query, queryText: event.target.value });
   };
 
-  onConstantChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, constant: parseFloat(event.target.value) });
-    // executes the query
-    onRunQuery();
+  onQueryTextKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const keyboardEvent = event as KeyboardEvent;
+    if ((keyboardEvent.keyCode === 13 && keyboardEvent.shiftKey) || keyboardEvent.key === 'Tab') {
+      keyboardEvent.preventDefault();
+      this.onRunQuery();
+      return;
+    }
   };
 
   onRunQuery = () => {
@@ -70,12 +98,15 @@ export class QueryEditor extends PureComponent<Props, State> {
         <div className="gf-form-inline">
           <div className="gf-form gf-form--grow">
             <textarea
-              rows={7}
+              rows={9}
               className="gf-form-input"
-              placeholder="Enter a splice machine query"
+              placeholder="Enter a splice machine query (run with Shift+Enter)"
               data-min-length={0}
               data-items={100}
-              onChange={this.onFieldChange}
+              value={this.query.queryText}
+              onKeyDown={this.onQueryTextKeyDown}
+              onChange={this.onQueryTextChange}
+              spellCheck={false}
             ></textarea>
           </div>
         </div>

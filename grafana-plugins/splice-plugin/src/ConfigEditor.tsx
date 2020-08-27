@@ -11,6 +11,10 @@ const SpliceSourceHttpSettings: React.FC<HttpSettingsProps> = props => {
   const { defaultUrl, dataSourceConfig, onChange } = props;
   const password = dataSourceConfig.secureJsonData ? dataSourceConfig.secureJsonData.basicAuthPassword : '';
 
+  if (typeof dataSourceConfig.url === 'undefined' || dataSourceConfig.url === null || dataSourceConfig.url === '') {
+    dataSourceConfig.url = defaultUrl;
+  }
+
   let urlTooltip;
   const theme = useTheme();
 

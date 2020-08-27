@@ -5,12 +5,10 @@ export interface SpliceQuery extends DataQuery {
   alias?: string;
   format?: string;
   rawSql?: string;
-  constant: number;
 }
 
 export const defaultQuery: Partial<SpliceQuery> = {
   format: 'table',
-  constant: 6.5,
 };
 
 /**
