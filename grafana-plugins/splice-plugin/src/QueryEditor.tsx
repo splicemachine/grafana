@@ -11,8 +11,8 @@ const FORMAT_OPTIONS: Array<SelectableValue<string>> = [
 ];
 
 const defaultTimeseriesQuery = `SELECT
-    <value_column> as value,
-    <time_column> as time
+    <time_column> as time,
+    <value_column> as value
   FROM
     <table name>
   WHERE
