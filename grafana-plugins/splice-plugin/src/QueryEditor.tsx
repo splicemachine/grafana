@@ -40,6 +40,10 @@ export class QueryEditor extends PureComponent<Props, State> {
     const query = Object.assign({}, defaultQuery, props.query);
     this.query = query;
 
+    if (typeof this.query.format === 'undefined' || this.query.format === null) {
+      this.query.format = 'time_series';
+    }
+
     if (typeof this.query.queryText === 'undefined' || this.query.queryText === null || this.query.queryText === '') {
       if (
         typeof this.query.format === 'undefined' ||
