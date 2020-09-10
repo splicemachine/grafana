@@ -7,10 +7,6 @@ export interface SpliceQuery extends DataQuery {
   rawSql?: string;
 }
 
-export const defaultQuery: Partial<SpliceQuery> = {
-  format: 'table',
-};
-
 /**
  * These are options configured for each DataSource instance
  */

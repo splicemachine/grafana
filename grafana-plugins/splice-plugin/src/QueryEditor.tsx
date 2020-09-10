@@ -36,27 +36,22 @@ export class QueryEditor extends PureComponent<Props, State> {
     super(props);
 
     // Use default query to prevent undefined input values
-    const defaultQuery: Partial<SpliceQuery> = {};
+    //const defaultQuery: Partial<SpliceQuery> = {};
+
+    const defaultQuery: Partial<SpliceQuery> = {
+      format: 'time_series',
+      queryText: defaultTimeseriesQuery,
+    };
+
     const query = Object.assign({}, defaultQuery, props.query);
     this.query = query;
-
-    if (typeof this.query.queryText === 'undefined' || this.query.queryText === null || this.query.queryText === '') {
-      if (
-        typeof this.query.format === 'undefined' ||
-        this.query.format === null ||
-        this.query.format === 'time_series'
-      ) {
-        this.query.queryText = defaultTimeseriesQuery;
-      } else {
-        this.query.queryText = defaultTableQuery;
-      }
-    }
 
     // Query target properties that are fully controlled inputs
     this.state = {
       // Select options
       formatOption: FORMAT_OPTIONS.find(option => option.value === query.format) || FORMAT_OPTIONS[0],
     };
+    this.props.onChange(query);
   }
 
   onFormatChange = (option: SelectableValue<string>) => {
