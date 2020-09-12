@@ -8,6 +8,7 @@ import { SpliceDataSourceOptions, SpliceQuery } from './types';
 const FORMAT_OPTIONS: Array<SelectableValue<string>> = [
   { label: 'Time series', value: 'time_series' },
   { label: 'Table', value: 'table' },
+  { label: 'Stream', value: 'stream' },
 ];
 
 const defaultTimeseriesQuery = `SELECT
@@ -59,6 +60,8 @@ export class QueryEditor extends PureComponent<Props, State> {
     if (this.query.format === 'table' && this.query.queryText === defaultTimeseriesQuery) {
       this.query.queryText = defaultTableQuery;
     } else if (this.query.format === 'time_series' && this.query.queryText === '') {
+      this.query.queryText = defaultTimeseriesQuery;
+    } else if (this.query.format === 'stream' && this.query.queryText === '') {
       this.query.queryText = defaultTimeseriesQuery;
     }
     this.setState({ formatOption: option }, this.onRunQuery);
