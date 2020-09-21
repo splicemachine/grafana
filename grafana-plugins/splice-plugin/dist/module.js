@@ -586,7 +586,7 @@ function (_super) {
         var q = targets_1_1.value;
 
         if (q.format === 'stream') {
-          streams.push(Object(_runStreams__WEBPACK_IMPORTED_MODULE_4__["runStream"])(q, request, this.headers, this.url));
+          streams.push(Object(_runStreams__WEBPACK_IMPORTED_MODULE_4__["runStream"])(this.myapplyTemplateVariables(q, request.scopedVars), request, this.headers, this.url));
         } else {
           var datasourceId = this.id;
 
@@ -607,7 +607,7 @@ function (_super) {
               datasourceId = ds.id;
             }
 
-            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, q), {
+            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, this.myapplyTemplateVariables(q, request.scopedVars)), {
               datasourceId: datasourceId,
               intervalMs: intervalMs,
               maxDataPoints: maxDataPoints,
@@ -672,6 +672,14 @@ function (_super) {
     }
 
     return rxjs__WEBPACK_IMPORTED_MODULE_3__["merge"].apply(void 0, Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__spread"])(streams));
+  };
+
+  DataSource.prototype.myapplyTemplateVariables = function (query, scopedVars) {
+    var _a;
+
+    return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, query), {
+      queryText: Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getTemplateSrv"])().replace((_a = query.queryText, _a !== null && _a !== void 0 ? _a : ''), scopedVars)
+    });
   };
 
   return DataSource;

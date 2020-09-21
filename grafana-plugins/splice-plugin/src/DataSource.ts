@@ -1,5 +1,11 @@
-import { DataSourceInstanceSettings, DataQueryRequest, DataQueryResponse, LoadingState } from '@grafana/data';
-import { DataSourceWithBackend, getBackendSrv, toDataQueryResponse, config } from '@grafana/runtime';
+import {
+  DataSourceInstanceSettings,
+  ScopedVars,
+  DataQueryRequest,
+  DataQueryResponse,
+  LoadingState,
+} from '@grafana/data';
+import { DataSourceWithBackend, getBackendSrv, getTemplateSrv, toDataQueryResponse, config } from '@grafana/runtime';
 import { SpliceDataSourceOptions, SpliceQuery } from './types';
 import { Observable, from, merge } from 'rxjs';
 import { runStream } from './runStreams';
@@ -64,7 +70,7 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
     }
     for (const q of targets) {
       if (q.format === 'stream') {
-        streams.push(runStream(q, request, this.headers, this.url));
+        streams.push(runStream(this.myapplyTemplateVariables(q, request.scopedVars), request, this.headers, this.url));
       } else {
         let datasourceId = this.id;
         if (q.datasource === ExpressionDatasourceID) {
@@ -83,8 +89,8 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
             datasourceId = ds.id;
           }
           queries.push({
-            //getTemplateSrv().replace(qText, request.scopedVars, 'regex'),
-            ...q,
+            //...q,
+            ...this.myapplyTemplateVariables(q, request.scopedVars),
             datasourceId,
             intervalMs,
             maxDataPoints,
@@ -143,4 +149,11 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
   processResponse?(res: DataQueryResponse): Promise<DataQueryResponse>;
 
   filterQuery?(query: SpliceQuery): boolean;
+
+  myapplyTemplateVariables(query: SpliceQuery, scopedVars: ScopedVars): SpliceQuery {
+    return {
+      ...query,
+      queryText: getTemplateSrv().replace(query.queryText ?? '', scopedVars), // The raw query text
+    };
+  }
 }
