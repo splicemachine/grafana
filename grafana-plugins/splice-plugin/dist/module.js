@@ -883,7 +883,8 @@ function runStream(target, req, headerinfo, queryurl) {
   return new rxjs__WEBPACK_IMPORTED_MODULE_1__["Observable"](function (subscriber) {
     var streamId = "signal-" + req.panelId + "-" + target.refId;
     var intervalMs = req.intervalMs,
-        requestId = req.requestId;
+        requestId = req.requestId,
+        range = req.range;
     var speed = intervalMs || 5000;
     var maxDataPoints = req.maxDataPoints || 750;
     var data = new _grafana_data__WEBPACK_IMPORTED_MODULE_2__["CircularDataFrame"]({
@@ -907,7 +908,7 @@ function runStream(target, req, headerinfo, queryurl) {
     var addNextRow = function addNextRow(fromtime, totime) {
       //fetch data for time
       var queries = [];
-      var range = {
+      var curRange = {
         from: Object(_grafana_data__WEBPACK_IMPORTED_MODULE_2__["toUtc"])(fromtime),
         to: Object(_grafana_data__WEBPACK_IMPORTED_MODULE_2__["toUtc"])(totime)
       };
@@ -919,9 +920,9 @@ function runStream(target, req, headerinfo, queryurl) {
       var body = {
         queries: queries
       };
-      body.range = range;
-      body.from = range.from.valueOf().toString();
-      body.to = range.to.valueOf().toString();
+      body.range = curRange;
+      body.from = curRange.from.valueOf().toString();
+      body.to = curRange.to.valueOf().toString();
       Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_3__["getBackendSrv"])().datasourceRequest({
         url: queryurl + '/query',
         method: 'POST',
@@ -959,15 +960,22 @@ function runStream(target, req, headerinfo, queryurl) {
 
 
     if (true) {
-      var time = Date.now() - maxDataPoints * speed;
+      var initFromTime = Date.now() - maxDataPoints * speed;
+      var initToTime = Date.now();
+
+      if (range) {
+        initFromTime = range.from.valueOf();
+        initToTime = range.to.valueOf();
+      }
+
       prevAddRowDone = false;
-      addNextRow(time, Date.now());
+      addNextRow(initFromTime, initToTime);
     }
 
     var pushNextEvent = function pushNextEvent() {
       if (prevAddRowDone) {
         prevAddRowDone = false;
-        addNextRow(prevTime, Date.now());
+        addNextRow(prevTime, prevTime + speed);
         subscriber.next({
           data: [data],
           key: streamId

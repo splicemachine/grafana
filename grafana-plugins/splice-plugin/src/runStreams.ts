@@ -13,7 +13,7 @@ export function runStream(
 ): Observable<DataQueryResponse> {
   return new Observable<DataQueryResponse>(subscriber => {
     const streamId = `signal-${req.panelId}-${target.refId}`;
-    const { intervalMs, requestId } = req;
+    const { intervalMs, requestId, range } = req;
     const speed = intervalMs || 5000;
     const maxDataPoints = req.maxDataPoints || 750;
 
@@ -35,7 +35,7 @@ export function runStream(
       //fetch data for time
 
       const queries: any[] = [];
-      const range = {
+      const curRange = {
         from: toUtc(fromtime),
         to: toUtc(totime),
       };
@@ -50,9 +50,9 @@ export function runStream(
       const body: any = {
         queries,
       };
-      body.range = range;
-      body.from = range.from.valueOf().toString();
-      body.to = range.to.valueOf().toString();
+      body.range = curRange;
+      body.from = curRange.from.valueOf().toString();
+      body.to = curRange.to.valueOf().toString();
 
       getBackendSrv()
         .datasourceRequest({
@@ -79,15 +79,20 @@ export function runStream(
 
     // Fill the buffer on init
     if (true) {
-      let time = Date.now() - maxDataPoints * speed;
+      let initFromTime = Date.now() - maxDataPoints * speed;
+      let initToTime = Date.now();
+      if (range) {
+        initFromTime = range.from.valueOf();
+        initToTime = range.to.valueOf();
+      }
       prevAddRowDone = false;
-      addNextRow(time, Date.now());
+      addNextRow(initFromTime, initToTime);
     }
 
     const pushNextEvent = () => {
       if (prevAddRowDone) {
         prevAddRowDone = false;
-        addNextRow(prevTime, Date.now());
+        addNextRow(prevTime, prevTime + speed);
         subscriber.next({
           data: [data],
           key: streamId,
