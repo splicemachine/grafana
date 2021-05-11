@@ -29,6 +29,7 @@ export function runStream(
 
     let timeoutId: any = null;
     let prevTime = 0;
+    let lag = 0;
     let prevAddRowDone = true;
 
     const addNextRow = (fromtime: number, totime: number) => {
@@ -84,6 +85,7 @@ export function runStream(
       if (range) {
         initFromTime = range.from.valueOf();
         initToTime = range.to.valueOf();
+        lag = Date.now() - initToTime;
       }
       prevAddRowDone = false;
       addNextRow(initFromTime, initToTime);
@@ -92,7 +94,7 @@ export function runStream(
     const pushNextEvent = () => {
       if (prevAddRowDone) {
         prevAddRowDone = false;
-        addNextRow(prevTime, prevTime + speed);
+        addNextRow(prevTime, Date.now() - lag);
         subscriber.next({
           data: [data],
           key: streamId,

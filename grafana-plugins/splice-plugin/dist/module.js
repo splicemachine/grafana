@@ -903,6 +903,7 @@ function runStream(target, req, headerinfo, queryurl) {
     });
     var timeoutId = null;
     var prevTime = 0;
+    var lag = 0;
     var prevAddRowDone = true;
 
     var addNextRow = function addNextRow(fromtime, totime) {
@@ -966,6 +967,7 @@ function runStream(target, req, headerinfo, queryurl) {
       if (range) {
         initFromTime = range.from.valueOf();
         initToTime = range.to.valueOf();
+        lag = Date.now() - initToTime;
       }
 
       prevAddRowDone = false;
@@ -975,7 +977,7 @@ function runStream(target, req, headerinfo, queryurl) {
     var pushNextEvent = function pushNextEvent() {
       if (prevAddRowDone) {
         prevAddRowDone = false;
-        addNextRow(prevTime, prevTime + speed);
+        addNextRow(prevTime, Date.now() - lag);
         subscriber.next({
           data: [data],
           key: streamId
