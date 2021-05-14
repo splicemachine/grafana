@@ -673,12 +673,181 @@ function (_super) {
 
     return rxjs__WEBPACK_IMPORTED_MODULE_3__["merge"].apply(void 0, Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__spread"])(streams));
   };
+  /**
+   * Ideally final -- any other implementation may not work as expected
+   */
+
+
+  DataSource.prototype.variableQuery = function (request) {
+    var e_2, _a;
+
+    var _this = this;
+
+    var intervalMs = request.intervalMs,
+        maxDataPoints = request.maxDataPoints,
+        range = request.range,
+        requestId = request.requestId;
+    var orgId = _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].bootData.user.orgId;
+    var streams = [];
+    var queries = [];
+    var targets = request.targets;
+
+    if (this.filterQuery) {
+      targets = targets.filter(function (q) {
+        return _this.filterQuery(q);
+      });
+    }
+
+    try {
+      for (var targets_2 = Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__values"])(targets), targets_2_1 = targets_2.next(); !targets_2_1.done; targets_2_1 = targets_2.next()) {
+        var q = targets_2_1.value;
+
+        if (q.format === 'stream') {
+          streams.push(Object(_runStreams__WEBPACK_IMPORTED_MODULE_4__["runStream"])(this.myapplyTemplateVariables(q, request.scopedVars), request, this.headers, this.url));
+        } else {
+          var datasourceId = this.id;
+
+          if (q.datasource === ExpressionDatasourceID) {
+            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, q), {
+              datasourceId: datasourceId,
+              orgId: orgId
+            }));
+          } else {
+            if (q.datasource) {
+              var dsName = q.datasource === 'default' ? _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].defaultDatasource : q.datasource;
+              var ds = _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].datasources[dsName];
+
+              if (!ds) {
+                throw new Error('Unknown Datasource: ' + q.datasource);
+              }
+
+              datasourceId = ds.id;
+            }
+
+            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, this.myapplyTemplateVariables(q, request.scopedVars)), {
+              datasourceId: datasourceId,
+              intervalMs: intervalMs,
+              maxDataPoints: maxDataPoints,
+              orgId: orgId
+            }));
+          }
+        }
+      }
+    } catch (e_2_1) {
+      e_2 = {
+        error: e_2_1
+      };
+    } finally {
+      try {
+        if (targets_2_1 && !targets_2_1.done && (_a = targets_2["return"])) _a.call(targets_2);
+      } finally {
+        if (e_2) throw e_2.error;
+      }
+    }
+
+    if (queries.length) {
+      var sqlstmt = queries[0];
+      var body = {
+        sqlstmt: sqlstmt
+      };
+
+      if (range) {
+        body.range = range;
+        body.from = range.from.valueOf().toString();
+        body.to = range.to.valueOf().toString();
+      } //const req: Promise<DataQueryResponse> = getBackendSrv()
+
+
+      var stream = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getBackendSrv"])().datasourceRequest({
+        url: this.url + '/variablequery',
+        method: 'POST',
+        data: body,
+        headers: this.headers,
+        requestId: requestId
+      }).then(function (rsp) {
+        //const dqs = toDataQueryResponse(rsp);
+        //if (this.processResponse) {
+        //return this.processResponse(dqs);
+        //}
+        //return dqs;
+        var dqs = {
+          data: rsp.data,
+          state: _grafana_data__WEBPACK_IMPORTED_MODULE_1__["LoadingState"].Done
+        };
+        return dqs;
+      })["catch"](function (err) {
+        err.isHandled = true; // Avoid extra popup warning
+
+        var dqs = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["toDataQueryResponse"])(err);
+
+        if (_this.processResponse) {
+          return _this.processResponse(dqs);
+        }
+
+        return dqs;
+      });
+      streams.push(Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["from"])(stream));
+    }
+
+    return rxjs__WEBPACK_IMPORTED_MODULE_3__["merge"].apply(void 0, Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__spread"])(streams));
+  };
 
   DataSource.prototype.myapplyTemplateVariables = function (query, scopedVars) {
     var _a;
 
     return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, query), {
       queryText: Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getTemplateSrv"])().replace((_a = query.queryText, _a !== null && _a !== void 0 ? _a : ''), scopedVars)
+    });
+  };
+
+  DataSource.prototype.metricFindQuery = function (query, options) {
+    return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"])(this, void 0, void 0, function () {
+      var response, data, dataCols, dataRows;
+      return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__generator"])(this, function (_a) {
+        switch (_a.label) {
+          case 0:
+            if (!query) {
+              return [2
+              /*return*/
+              , []];
+            }
+
+            return [4
+            /*yield*/
+            , this.variableQuery({
+              targets: [{
+                rawQueryText: query,
+                queryText: query,
+                timeColumns: []
+              }]
+            }).toPromise()];
+
+          case 1:
+            response = _a.sent();
+
+            if (response.error) {
+              throw new Error(response.error.message);
+            }
+
+            data = response.data;
+            dataCols = data.columns;
+
+            if (data.columns.length !== 1) {
+              throw new Error("Received more than one (" + dataCols.length + ") columns");
+            }
+
+            dataRows = data.rows;
+            return [2
+            /*return*/
+            , dataRows.flatMap(function (x) {
+              return x;
+            }).map(function (text) {
+              return {
+                text: text
+              };
+            })];
+        }
+      });
     });
   };
 
