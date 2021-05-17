@@ -1,4 +1,4 @@
-define(["@grafana/data","@grafana/runtime","@grafana/ui","emotion","react","rxjs"], function(__WEBPACK_EXTERNAL_MODULE__grafana_data__, __WEBPACK_EXTERNAL_MODULE__grafana_runtime__, __WEBPACK_EXTERNAL_MODULE__grafana_ui__, __WEBPACK_EXTERNAL_MODULE_emotion__, __WEBPACK_EXTERNAL_MODULE_react__, __WEBPACK_EXTERNAL_MODULE_rxjs__) { return /******/ (function(modules) { // webpackBootstrap
+define(["@grafana/data","@grafana/runtime","@grafana/ui","emotion","lodash","react","rxjs"], function(__WEBPACK_EXTERNAL_MODULE__grafana_data__, __WEBPACK_EXTERNAL_MODULE__grafana_runtime__, __WEBPACK_EXTERNAL_MODULE__grafana_ui__, __WEBPACK_EXTERNAL_MODULE_emotion__, __WEBPACK_EXTERNAL_MODULE_lodash__, __WEBPACK_EXTERNAL_MODULE_react__, __WEBPACK_EXTERNAL_MODULE_rxjs__) { return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 /******/
@@ -501,6 +501,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs */ "rxjs");
 /* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(rxjs__WEBPACK_IMPORTED_MODULE_3__);
 /* harmony import */ var _runStreams__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./runStreams */ "./runStreams.ts");
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! lodash */ "lodash");
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(lodash__WEBPACK_IMPORTED_MODULE_5__);
+
 
 
 
@@ -528,6 +531,30 @@ function (_super) {
     _this.headers = instanceSettings.jsonData;
     return _this;
   }
+
+  DataSource.prototype.interpolateVariable = function (value, variable) {
+    if (typeof value === 'string') {
+      if (variable.multi || variable.includeAll) {
+        return "'" + value.replace(/'/g, "''") + "'";
+      } else {
+        return value;
+      }
+    }
+
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    var quotedValues = Object(lodash__WEBPACK_IMPORTED_MODULE_5__["map"])(value, function (val) {
+      if (typeof value === 'number') {
+        return value;
+      }
+
+      return "'" + val.replace(/'/g, "''") + "'";
+    });
+
+    return quotedValues.join(',');
+  };
 
   DataSource.prototype.testDatasource = function () {
     return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"])(this, void 0, void 0, function () {
@@ -678,118 +705,43 @@ function (_super) {
    */
 
 
-  DataSource.prototype.variableQuery = function (request) {
-    var e_2, _a;
-
+  DataSource.prototype.variableQuery = function (query) {
     var _this = this;
 
-    var intervalMs = request.intervalMs,
-        maxDataPoints = request.maxDataPoints,
-        range = request.range,
-        requestId = request.requestId;
     var orgId = _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].bootData.user.orgId;
-    var streams = [];
-    var queries = [];
-    var targets = request.targets;
+    var datasourceId = this.id;
 
-    if (this.filterQuery) {
-      targets = targets.filter(function (q) {
-        return _this.filterQuery(q);
-      });
-    }
+    var sqlstmt = Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, query), {
+      datasourceId: datasourceId,
+      orgId: orgId
+    });
 
-    try {
-      for (var targets_2 = Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__values"])(targets), targets_2_1 = targets_2.next(); !targets_2_1.done; targets_2_1 = targets_2.next()) {
-        var q = targets_2_1.value;
-
-        if (q.format === 'stream') {
-          streams.push(Object(_runStreams__WEBPACK_IMPORTED_MODULE_4__["runStream"])(this.myapplyTemplateVariables(q, request.scopedVars), request, this.headers, this.url));
-        } else {
-          var datasourceId = this.id;
-
-          if (q.datasource === ExpressionDatasourceID) {
-            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, q), {
-              datasourceId: datasourceId,
-              orgId: orgId
-            }));
-          } else {
-            if (q.datasource) {
-              var dsName = q.datasource === 'default' ? _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].defaultDatasource : q.datasource;
-              var ds = _grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["config"].datasources[dsName];
-
-              if (!ds) {
-                throw new Error('Unknown Datasource: ' + q.datasource);
-              }
-
-              datasourceId = ds.id;
-            }
-
-            queries.push(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])(Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__assign"])({}, this.myapplyTemplateVariables(q, request.scopedVars)), {
-              datasourceId: datasourceId,
-              intervalMs: intervalMs,
-              maxDataPoints: maxDataPoints,
-              orgId: orgId
-            }));
-          }
-        }
-      }
-    } catch (e_2_1) {
-      e_2 = {
-        error: e_2_1
+    var body = {
+      sqlstmt: sqlstmt
+    };
+    var stream = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getBackendSrv"])().datasourceRequest({
+      url: this.url + '/variablequery',
+      method: 'POST',
+      data: body,
+      headers: this.headers
+    }).then(function (rsp) {
+      var dqs = {
+        data: rsp.data,
+        state: _grafana_data__WEBPACK_IMPORTED_MODULE_1__["LoadingState"].Done
       };
-    } finally {
-      try {
-        if (targets_2_1 && !targets_2_1.done && (_a = targets_2["return"])) _a.call(targets_2);
-      } finally {
-        if (e_2) throw e_2.error;
+      return dqs;
+    })["catch"](function (err) {
+      err.isHandled = true; // Avoid extra popup warning
+
+      var dqs = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["toDataQueryResponse"])(err);
+
+      if (_this.processResponse) {
+        return _this.processResponse(dqs);
       }
-    }
 
-    if (queries.length) {
-      var sqlstmt = queries[0];
-      var body = {
-        sqlstmt: sqlstmt
-      };
-
-      if (range) {
-        body.range = range;
-        body.from = range.from.valueOf().toString();
-        body.to = range.to.valueOf().toString();
-      } //const req: Promise<DataQueryResponse> = getBackendSrv()
-
-
-      var stream = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getBackendSrv"])().datasourceRequest({
-        url: this.url + '/variablequery',
-        method: 'POST',
-        data: body,
-        headers: this.headers,
-        requestId: requestId
-      }).then(function (rsp) {
-        //const dqs = toDataQueryResponse(rsp);
-        //if (this.processResponse) {
-        //return this.processResponse(dqs);
-        //}
-        //return dqs;
-        var dqs = {
-          data: rsp.data,
-          state: _grafana_data__WEBPACK_IMPORTED_MODULE_1__["LoadingState"].Done
-        };
-        return dqs;
-      })["catch"](function (err) {
-        err.isHandled = true; // Avoid extra popup warning
-
-        var dqs = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["toDataQueryResponse"])(err);
-
-        if (_this.processResponse) {
-          return _this.processResponse(dqs);
-        }
-
-        return dqs;
-      });
-      streams.push(Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["from"])(stream));
-    }
-
-    return rxjs__WEBPACK_IMPORTED_MODULE_3__["merge"].apply(void 0, Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__spread"])(streams));
+      return dqs;
+    });
+    return Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["from"])(stream);
   };
 
   DataSource.prototype.myapplyTemplateVariables = function (query, scopedVars) {
@@ -802,7 +754,7 @@ function (_super) {
 
   DataSource.prototype.metricFindQuery = function (query, options) {
     return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"])(this, void 0, void 0, function () {
-      var response, data, dataCols, dataRows;
+      var interpolatedQuery, response, data, dataCols, dataRows;
       return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__generator"])(this, function (_a) {
         switch (_a.label) {
           case 0:
@@ -810,16 +762,16 @@ function (_super) {
               return [2
               /*return*/
               , []];
+            } else {
+              interpolatedQuery = Object(_grafana_runtime__WEBPACK_IMPORTED_MODULE_2__["getTemplateSrv"])().replace(query, {}, this.interpolateVariable);
             }
 
             return [4
             /*yield*/
             , this.variableQuery({
-              targets: [{
-                rawQueryText: query,
-                queryText: query,
-                timeColumns: []
-              }]
+              rawQueryText: interpolatedQuery,
+              queryText: interpolatedQuery,
+              timeColumns: []
             }).toPromise()];
 
           case 1:
@@ -1208,6 +1160,17 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__grafana_ui__;
 /***/ (function(module, exports) {
 
 module.exports = __WEBPACK_EXTERNAL_MODULE_emotion__;
+
+/***/ }),
+
+/***/ "lodash":
+/*!*************************!*\
+  !*** external "lodash" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_lodash__;
 
 /***/ }),
 
