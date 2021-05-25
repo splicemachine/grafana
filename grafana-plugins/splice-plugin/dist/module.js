@@ -503,6 +503,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _runStreams__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./runStreams */ "./runStreams.ts");
 /* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! lodash */ "lodash");
 /* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(lodash__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var _response_parser__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./response_parser */ "./response_parser.ts");
+
 
 
 
@@ -529,6 +531,7 @@ function (_super) {
     _this.basicAuth = instanceSettings.basicAuth;
     _this.withCredentials = instanceSettings.withCredentials;
     _this.headers = instanceSettings.jsonData;
+    _this.responseParser = new _response_parser__WEBPACK_IMPORTED_MODULE_6__["default"]();
     return _this;
   }
 
@@ -754,7 +757,7 @@ function (_super) {
 
   DataSource.prototype.metricFindQuery = function (query, options) {
     return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__awaiter"])(this, void 0, void 0, function () {
-      var interpolatedQuery, response, data, dataCols, dataRows;
+      var interpolatedQuery, response, data;
       return Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__generator"])(this, function (_a) {
         switch (_a.label) {
           case 0:
@@ -782,22 +785,9 @@ function (_super) {
             }
 
             data = response.data;
-            dataCols = data.columns;
-
-            if (data.columns.length !== 1) {
-              throw new Error("Received more than one (" + dataCols.length + ") columns");
-            }
-
-            dataRows = data.rows;
             return [2
             /*return*/
-            , dataRows.flatMap(function (x) {
-              return x;
-            }).map(function (text) {
-              return {
-                text: text
-              };
-            })];
+            , this.responseParser.parseMetricFindQueryResult(data)];
         }
       });
     });
@@ -976,6 +966,104 @@ __webpack_require__.r(__webpack_exports__);
 
 
 var plugin = new _grafana_data__WEBPACK_IMPORTED_MODULE_0__["DataSourcePlugin"](_DataSource__WEBPACK_IMPORTED_MODULE_1__["DataSource"]).setConfigEditor(_ConfigEditor__WEBPACK_IMPORTED_MODULE_2__["ConfigEditor"]).setQueryEditor(_QueryEditor__WEBPACK_IMPORTED_MODULE_3__["QueryEditor"]);
+
+/***/ }),
+
+/***/ "./response_parser.ts":
+/*!****************************!*\
+  !*** ./response_parser.ts ***!
+  \****************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash */ "lodash");
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash__WEBPACK_IMPORTED_MODULE_0__);
+
+
+var ResponseParser =
+/** @class */
+function () {
+  function ResponseParser() {}
+
+  ResponseParser.prototype.parseMetricFindQueryResult = function (results) {
+    var columns = results.columns;
+    var rows = results.rows;
+
+    if (!results || columns.length === 0) {
+      return [];
+    }
+
+    var textColIndex = this.findColIndex(columns, '__text');
+    var valueColIndex = this.findColIndex(columns, '__value');
+
+    if (columns.length === 2 && textColIndex !== -1 && valueColIndex !== -1) {
+      return this.transformToKeyValueList(rows, textColIndex, valueColIndex);
+    }
+
+    return this.transformToSimpleList(rows);
+  };
+
+  ResponseParser.prototype.transformToKeyValueList = function (rows, textColIndex, valueColIndex) {
+    var res = [];
+
+    for (var i = 0; i < rows.length; i++) {
+      if (!this.containsKey(res, rows[i][textColIndex])) {
+        res.push({
+          text: rows[i][textColIndex],
+          value: rows[i][valueColIndex]
+        });
+      }
+    }
+
+    return res;
+  };
+
+  ResponseParser.prototype.transformToSimpleList = function (rows) {
+    var res = [];
+
+    for (var i = 0; i < rows.length; i++) {
+      for (var j = 0; j < rows[i].length; j++) {
+        var value = rows[i][j];
+
+        if (res.indexOf(value) === -1) {
+          res.push(value);
+        }
+      }
+    }
+
+    return lodash__WEBPACK_IMPORTED_MODULE_0___default.a.map(res, function (value) {
+      return {
+        text: value
+      };
+    });
+  };
+
+  ResponseParser.prototype.findColIndex = function (columns, colName) {
+    for (var i = 0; i < columns.length; i++) {
+      if (columns[i].text === colName) {
+        return i;
+      }
+    }
+
+    return -1;
+  };
+
+  ResponseParser.prototype.containsKey = function (res, key) {
+    for (var i = 0; i < res.length; i++) {
+      if (res[i].text === key) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  return ResponseParser;
+}();
+
+/* harmony default export */ __webpack_exports__["default"] = (ResponseParser);
 
 /***/ }),
 

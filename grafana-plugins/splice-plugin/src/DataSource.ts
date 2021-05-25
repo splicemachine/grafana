@@ -10,6 +10,7 @@ import { SpliceDataSourceOptions, SpliceQuery } from './types';
 import { Observable, from, merge } from 'rxjs';
 import { runStream } from './runStreams';
 import { map as _map } from 'lodash';
+import ResponseParser from './response_parser';
 
 const ExpressionDatasourceID = '__expr__';
 
@@ -24,7 +25,7 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
   basicAuth: any;
   withCredentials: any;
   interval: any;
-  responseParser: any;
+  responseParser: ResponseParser;
 
   constructor(instanceSettings: DataSourceInstanceSettings<SpliceDataSourceOptions>) {
     super(instanceSettings);
@@ -38,6 +39,7 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
     this.headers = instanceSettings.jsonData;
+    this.responseParser = new ResponseParser();
   }
 
   interpolateVariable(value: any, variable: any) {
@@ -240,12 +242,6 @@ export class DataSource extends DataSourceWithBackend<SpliceQuery, SpliceDataSou
 
     const data: any = response.data;
 
-    const dataCols: any = data.columns;
-    if (data.columns.length !== 1) {
-      throw new Error(`Received more than one (${dataCols.length}) columns`);
-    }
-
-    const dataRows: any = data.rows;
-    return dataRows.flatMap(x => x).map(text => ({ text }));
+    return this.responseParser.parseMetricFindQueryResult(data);
   }
 }
